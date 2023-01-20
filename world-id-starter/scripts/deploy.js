@@ -47,8 +47,9 @@ async function main() {
     .then(
       (res) => res.find(({ key }) => key == "staging.semaphore.wld.eth").value
     );
-
-  let inputs = [];
+  const actionId = "wid_staging_aaa75c94a369c545c248928d736c4401";
+  const contractAddress = "0x291c3D8C9f29420a736635bBca47069108E0E8ee";
+  let inputs = [actionId, contractAddress];
   // if you need any constructor parameters, use this to get them when running the script:
   // inputs = [await ask("Param1: "), await ask("Param2: ")];
 

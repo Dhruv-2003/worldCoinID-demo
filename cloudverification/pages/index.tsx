@@ -5,6 +5,9 @@ import styles from "@/styles/Home.module.css";
 import dynamic from "next/dynamic";
 import { WidgetProps } from "@worldcoin/id";
 import axios from "axios";
+import { contract_ABI, contract_Address } from "@/constants/constants";
+import { Contract, Wallet, ethers } from "ethers";
+import { defaultAbiCoder as abi } from "@ethersproject/abi";
 
 const WorldIDWidget = dynamic<WidgetProps>(
   () => import("@worldcoin/id").then((mod) => mod.WorldIDWidget),
@@ -13,7 +16,7 @@ const WorldIDWidget = dynamic<WidgetProps>(
 
 // --> Cloud Functions
 /// verify the Proof by sending a request first and then Moving ahead.
-const verifyProof = () => {
+const verifyProof = (verificationResponse: any) => {
   try {
     const config = {
       method: "post",
@@ -22,14 +25,11 @@ const verifyProof = () => {
         "Content-Type": "application/json",
       },
       data: {
-        merkle_root:
-          "0x1f38b57f3bdf96f05ea62fa68814871bf0ca8ce4dbe073d8497d5a6b0a53e5e0",
-        nullifier_hash:
-          "0x0339861e70a9bdb6b01a88c7534a3332db915d3d06511b79a5724221a6958fbe",
+        merkle_root: verificationResponse.merkle_root,
+        nullifier_hash: verificationResponse.nullifier_hash,
         action_id: "wid_staging_463a9bda2c5c73bf919d94bc59f7e92e",
         signal: "Verify Real users ",
-        proof:
-          "0x063942fd7ea1616f17787d2e3374c1826ebcd2d41d2394d915098c73482fa59516145cee11d59158b4012a463f487725cb3331bf90a0472e17385832eeaec7a713164055fc43cc0f873d76752de0e35cc653346ec42232649d40f5b8ded28f202793c4e8d096493dc34b02ce4252785df207c2b76673924502ab56b7e844baf621025148173fc74682213753493e8c90e5c224fc43786fcd09b624115bee824618e57bd28caa301f6b21606e7dce789090de053e641bce2ce0999b64cdfdfb0a0734413914c21e4e858bf38085310d47cd4cc6570ed634faa2246728ad64c49f1f720a39530d82e1fae1532bd7ad389978b6f337fcd6fa6381869637596e63a1",
+        proof: verificationResponse.proof,
       },
     };
     axios(config)
@@ -42,6 +42,27 @@ const verifyProof = () => {
       .catch(function (error) {
         console.log(error);
       });
+  } catch (error) {
+    console.log(error);
+  }
+};
+
+// --> On Chain Verification
+const verifyOnchain = async (worldIDProof: any) => {
+  try {
+    let wallet_Address = "";
+    let PRIVATE_KEY = "";
+    const signer = new Wallet(PRIVATE_KEY);
+    const contract = new Contract(contract_Address, contract_ABI, signer);
+    const verifyTx = await contract.verifyAndExecute(
+      wallet_Address,
+      worldIDProof.merkle_root,
+      worldIDProof.nullifier_hash,
+      abi.decode(["uint256[8]"], worldIDProof.proof)[0],
+      { gasLimit: 10000000 }
+    );
+
+    await verifyTx.wait();
   } catch (error) {
     console.log(error);
   }

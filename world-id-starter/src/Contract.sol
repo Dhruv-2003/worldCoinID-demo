@@ -3,6 +3,7 @@ pragma solidity ^0.8.13;
 
 import {ByteHasher} from "./helpers/ByteHasher.sol";
 import {IWorldID} from "./interfaces/IWorldID.sol";
+import "./NFT.sol";
 
 contract Contract {
     using ByteHasher for bytes;
@@ -26,11 +27,19 @@ contract Contract {
     /// @dev Whether a nullifier hash has been used already. Used to guarantee an action is only performed once by a single person
     mapping(uint256 => bool) internal nullifierHashes;
 
+    /// address of the Contract on which the process is to be executed
+    address public userContractAddress;
+
     /// @param _worldId The WorldID instance that will verify the proofs
     /// @param _actionId The action ID for your application
-    constructor(IWorldID _worldId, string memory _actionId) {
+    constructor(
+        IWorldID _worldId,
+        string memory _actionId,
+        address _contractAddress
+    ) {
         worldId = _worldId;
         actionId = abi.encodePacked(_actionId).hashToField();
+        userContractAddress = _contractAddress;
     }
 
     /// @param signal An arbitrary input from the user, usually the user's wallet address (check README for further details)
@@ -62,5 +71,7 @@ contract Contract {
 
         // Finally, execute your logic here, for example issue a token, NFT, etc...
         // Make sure to emit some kind of event afterwards!
+
+        DAOMemberNFT(userContractAddress).safeMint();
     }
 }
